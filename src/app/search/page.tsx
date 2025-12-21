@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { searchProducts, PRODUCTS, Product } from "@/lib/products";
 import { Search, X } from "lucide-react";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get("q") || "";
@@ -162,5 +162,24 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white">
+        <div className="bg-[#f8f8f8] py-10">
+          <div className="container mx-auto px-4">
+            <h1 className="text-3xl font-serif font-bold text-gray-900 mb-3">Search</h1>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-10 text-center">
+          <div className="animate-pulse text-gray-400">Loading...</div>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }
