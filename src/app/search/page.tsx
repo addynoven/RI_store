@@ -1,14 +1,28 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { searchProducts, PRODUCTS, Product } from "@/lib/products";
-import { Search, X } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
+
+interface Product {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  originalPrice?: number | null;
+  discountPercentage?: number | null;
+  rating: number;
+  reviewsCount: number;
+  itemsLeft: number;
+  image: string;
+  tags: string[];
+  category?: { name: string; slug: string } | null;
+}
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -16,17 +30,42 @@ function SearchContent() {
   const initialQuery = searchParams.get("q") || "";
   
   const [query, setQuery] = useState(initialQuery);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [results, setResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Search when query changes
+  // Fetch all products on mount
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        const data = await res.json();
+        if (data.success) {
+          setAllProducts(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
+
+  // Search when query or products change
   useEffect(() => {
     if (query.trim()) {
-      const found = searchProducts(query);
+      const lowerQuery = query.toLowerCase();
+      const found = allProducts.filter(product => 
+        product.title.toLowerCase().includes(lowerQuery) ||
+        product.category?.name.toLowerCase().includes(lowerQuery) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
+      );
       setResults(found);
     } else {
       setResults([]);
     }
-  }, [query]);
+  }, [query, allProducts]);
 
   // Update URL when query changes (debounced)
   useEffect(() => {
@@ -39,6 +78,14 @@ function SearchContent() {
     }, 300);
     return () => clearTimeout(timer);
   }, [query, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -78,7 +125,7 @@ function SearchContent() {
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-500 mb-3">Popular searches:</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {["Necklaces", "Bracelets", "Earrings", "Silver", "Gold", "Diamond"].map((term) => (
+                {["Necklaces", "Bangles", "Earrings", "Mangalsutra", "Gold", "Anklets"].map((term) => (
                   <button
                     key={term}
                     onClick={() => setQuery(term)}
@@ -113,13 +160,13 @@ function SearchContent() {
                     id={product.id}
                     slug={product.slug}
                     title={product.title}
-                    category={product.category}
+                    category={product.category?.name ?? ""}
                     price={product.price}
-                    originalPrice={product.originalPrice}
+                    originalPrice={product.originalPrice ?? undefined}
                     rating={product.rating}
-                    reviews={product.reviews}
+                    reviews={product.reviewsCount}
                     itemsLeft={product.itemsLeft}
-                    discountPercentage={product.discountPercentage}
+                    discountPercentage={product.discountPercentage ?? undefined}
                     image={product.image}
                   />
                 ))}
@@ -141,19 +188,19 @@ function SearchContent() {
           <div>
             <h2 className="text-xl font-bold text-gray-900 mb-6">All Products</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {PRODUCTS.slice(0, 8).map((product) => (
+              {allProducts.slice(0, 8).map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}
                   slug={product.slug}
                   title={product.title}
-                  category={product.category}
+                  category={product.category?.name ?? ""}
                   price={product.price}
-                  originalPrice={product.originalPrice}
+                  originalPrice={product.originalPrice ?? undefined}
                   rating={product.rating}
-                  reviews={product.reviews}
+                  reviews={product.reviewsCount}
                   itemsLeft={product.itemsLeft}
-                  discountPercentage={product.discountPercentage}
+                  discountPercentage={product.discountPercentage ?? undefined}
                   image={product.image}
                 />
               ))}
@@ -174,8 +221,8 @@ export default function SearchPage() {
             <h1 className="text-3xl font-serif font-bold text-gray-900 mb-3">Search</h1>
           </div>
         </div>
-        <div className="container mx-auto px-4 py-10 text-center">
-          <div className="animate-pulse text-gray-400">Loading...</div>
+        <div className="container mx-auto px-4 py-10 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       </div>
     }>

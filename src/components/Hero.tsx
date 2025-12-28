@@ -7,25 +7,25 @@ import Autoplay from "embla-carousel-autoplay";
 const HERO_SLIDES = [
   {
     id: 1,
-    title: "Pieces to Keep Forever",
-    subtitle: "Jewelry is a lot like love; it's a good idea but expensive",
-    image: "https://picsum.photos/seed/hero-slide-1/1920/1080",
-    cta: "Shop Collection",
+    title: "Premium Jewelry",
+    subtitle: "Handcrafted elegance for every occasion",
+    image: "https://images.meesho.com/images/products/15293867/f67ec_512.jpg",
+    cta: "Shop Now",
     link: "/shop",
   },
   {
     id: 2,
-    title: "Timeless Elegance",
-    subtitle: "Discover our exclusive collection of handcrafted jewelry",
-    image: "https://picsum.photos/seed/hero-slide-2/1920/1080",
-    cta: "Explore Now",
+    title: "Traditional Designs",
+    subtitle: "Timeless beauty that celebrates your heritage",
+    image: "https://images.meesho.com/images/products/67611182/2yijm_512.jpg",
+    cta: "Explore Collection",
     link: "/shop",
   },
   {
     id: 3,
-    title: "Luxury Redefined",
-    subtitle: "Where craftsmanship meets contemporary design",
-    image: "https://picsum.photos/seed/hero-slide-3/1920/1080",
+    title: "Affordable Luxury",
+    subtitle: "Beautiful jewelry at prices you'll love",
+    image: "https://images.meesho.com/images/products/8321101/8v5o6_512.jpg",
     cta: "View Collection",
     link: "/shop",
   },
@@ -33,7 +33,7 @@ const HERO_SLIDES = [
 
 export default function Hero() {
   return (
-    <section className="relative w-full h-[600px] md:h-[750px] overflow-hidden">
+    <section className="relative w-full h-[500px] md:h-[650px] overflow-hidden bg-gradient-to-br from-amber-50 to-rose-50">
       <Carousel
         opts={{
           align: "start",
@@ -49,41 +49,49 @@ export default function Hero() {
         <CarouselContent className="h-full -ml-0">
           {HERO_SLIDES.map((slide) => (
             <CarouselItem key={slide.id} className="h-full pl-0">
-              <div className="relative w-full h-[600px] md:h-[750px]">
+              <div className="relative w-full h-[500px] md:h-[650px]">
+                {/* Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-900/80 via-amber-800/60 to-transparent z-10"></div>
+                
                 {/* Background Image */}
-                <img
-                  src={slide.image}
-                  alt={slide.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                {/* Dark overlay for text readability */}
-                <div className="absolute inset-0 bg-black/30"></div>
+                <div className="absolute right-0 top-0 w-full md:w-2/3 h-full">
+                  <img
+                    src={slide.image}
+                    alt={slide.title}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
 
                 {/* Content Overlay */}
-                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center text-center text-white space-y-4 pt-20">
-                  <h1 className="text-5xl md:text-7xl font-serif tracking-tight drop-shadow-md">
-                    {slide.title}
-                  </h1>
+                <div className="relative z-20 w-full h-full flex flex-col justify-center px-8 md:px-16 lg:px-24">
+                  <div className="max-w-xl space-y-6">
+                    <span className="text-amber-300 text-sm font-medium uppercase tracking-widest">
+                      RI Store Collection
+                    </span>
+                    
+                    <h1 className="text-4xl md:text-6xl font-serif text-white leading-tight">
+                      {slide.title}
+                    </h1>
 
-                  <p className="text-lg md:text-xl font-sans font-light tracking-wide max-w-xl drop-shadow-sm">
-                    {slide.subtitle}
-                  </p>
+                    <p className="text-lg md:text-xl text-amber-100/90 font-light max-w-md">
+                      {slide.subtitle}
+                    </p>
 
-                  <div className="pt-8">
-                    <Link
-                      href={slide.link}
-                      className="
-                        inline-block 
-                        text-sm font-bold uppercase tracking-[0.2em] 
-                        text-white 
-                        border-b-2 border-white 
-                        pb-1
-                        hover:text-gray-200 hover:border-gray-200 
-                        transition-all
-                      "
-                    >
-                      {slide.cta}
-                    </Link>
+                    <div className="pt-4">
+                      <Link
+                        href={slide.link}
+                        className="
+                          inline-block 
+                          bg-white text-amber-900
+                          px-8 py-3
+                          text-sm font-bold uppercase tracking-wider
+                          hover:bg-amber-100
+                          transition-colors
+                        "
+                      >
+                        {slide.cta}
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -92,8 +100,8 @@ export default function Hero() {
         </CarouselContent>
 
         {/* Navigation Arrows */}
-        <CarouselPrevious className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 bg-transparent border-0 text-white/50 hover:text-white hover:bg-transparent h-16 w-16 [&>svg]:w-10 [&>svg]:h-10" />
-        <CarouselNext className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 bg-transparent border-0 text-white/50 hover:text-white hover:bg-transparent h-16 w-16 [&>svg]:w-10 [&>svg]:h-10" />
+        <CarouselPrevious className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 bg-white/20 border-0 text-white hover:bg-white/40 hover:text-white h-12 w-12" />
+        <CarouselNext className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/20 border-0 text-white hover:bg-white/40 hover:text-white h-12 w-12" />
       </Carousel>
     </section>
   );

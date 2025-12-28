@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
-import { Package, Heart, User, LogOut, MapPin, CreditCard } from "lucide-react";
+import { Package, Heart, User, MapPin, CreditCard, ShieldCheck, Settings } from "lucide-react";
 import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function AccountPage() {
@@ -11,6 +11,12 @@ export default async function AccountPage() {
   if (!session?.user) {
     redirect("/login?callbackUrl=/account");
   }
+
+  const isAdmin = session.user.role === "ADMIN";
+
+  const adminMenuItems = [
+    { icon: Settings, label: "Manage Products", href: "/admin/products/new", description: "Add or edit products" },
+  ];
 
   const menuItems = [
     { icon: Package, label: "Order History", href: "/account/orders", description: "View your past orders" },
@@ -36,17 +42,49 @@ export default async function AccountPage() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-[#f8f8f8] p-6">
-              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
+                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200">
                 <div className="w-14 h-14 bg-gray-300 rounded-full flex items-center justify-center text-white text-xl font-bold">
                   {session.user.name?.charAt(0) || "U"}
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{session.user.name || "User"}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-gray-900">{session.user.name || "User"}</p>
+                    {isAdmin && (
+                      <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        <ShieldCheck className="w-3 h-3" />
+                        ADMIN
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500">{session.user.email}</p>
                 </div>
               </div>
 
               <nav className="space-y-1">
+                {/* Admin Menu Section */}
+                {isAdmin && (
+                  <>
+                    <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider px-3 pt-2 pb-1">
+                      Admin
+                    </div>
+                    {adminMenuItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.label}
+                          href={item.href}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded transition-colors font-medium"
+                        >
+                          <Icon className="w-4 h-4" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                    <div className="border-b border-gray-200 my-2" />
+                  </>
+                )}
+
+                {/* User Menu Section */}
                 {menuItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -71,6 +109,23 @@ export default async function AccountPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-6">Dashboard</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Admin Cards */}
+              {isAdmin && adminMenuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="p-6 border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 hover:border-amber-400 hover:shadow-md transition-all group"
+                  >
+                    <Icon className="w-8 h-8 text-amber-500 group-hover:text-amber-600 transition-colors mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-1">{item.label}</h3>
+                    <p className="text-sm text-gray-500">{item.description}</p>
+                  </Link>
+                );
+              })}
+
+              {/* User Cards */}
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 return (

@@ -1,106 +1,115 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProductFilters from "@/components/ProductFilters";
 import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/Pagination";
-import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Category info - in real app, fetch from API
-const CATEGORIES: Record<string, { name: string; description: string; image: string }> = {
-  bracelets: {
-    name: "Bracelets",
-    description: "Discover our stunning collection of bracelets, from delicate chains to bold statement pieces.",
-    image: "https://picsum.photos/seed/cat-bracelets/1920/400",
-  },
-  earrings: {
-    name: "Earrings",
-    description: "Find the perfect pair of earrings to complement any outfit, from studs to chandeliers.",
-    image: "https://picsum.photos/seed/cat-earrings/1920/400",
-  },
-  necklaces: {
-    name: "Necklaces",
-    description: "Explore our necklace collection featuring pendants, chains, and layered styles.",
-    image: "https://picsum.photos/seed/cat-necklaces/1920/400",
-  },
-  rings: {
-    name: "Rings",
-    description: "From engagement rings to everyday bands, find your perfect ring here.",
-    image: "https://picsum.photos/seed/cat-rings/1920/400",
-  },
-  "gold-set": {
-    name: "Gold Set",
-    description: "Luxurious gold jewelry sets for special occasions.",
-    image: "https://picsum.photos/seed/cat-gold/1920/400",
-  },
-  "silver-set": {
-    name: "Silver Set",
-    description: "Elegant silver jewelry sets perfect for any style.",
-    image: "https://picsum.photos/seed/cat-silver/1920/400",
-  },
-};
+interface Product {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  originalPrice?: number | null;
+  discountPercentage?: number | null;
+  rating: number;
+  reviewsCount: number;
+  itemsLeft: number;
+  image: string;
+  category?: { name: string; slug: string } | null;
+}
 
-// Mock products by category
-const PRODUCTS_BY_CATEGORY: Record<string, Array<{ id: string; title: string; category: string; price: number; originalPrice?: number; rating: number; reviews: number; itemsLeft: number; discountPercentage?: number }>> = {
-  bracelets: [
-    { id: "1", title: "Twist Rows Bracelet", category: "BRACELETS", price: 71.99, originalPrice: 81.99, rating: 4.33, reviews: 3, itemsLeft: 84, discountPercentage: 13 },
-    { id: "2", title: "Sterling Silver Mercy Open Bangle Medium", category: "BRACELETS", price: 59.85, originalPrice: 77.75, rating: 4.0, reviews: 3, itemsLeft: 30, discountPercentage: 24 },
-    { id: "3", title: "Sterling Silver 5mm Torque Bangle", category: "BRACELETS", price: 44.19, originalPrice: 59.89, rating: 4.67, reviews: 3, itemsLeft: 21, discountPercentage: 27 },
-    { id: "4", title: "Silver Torque Wave Bangle S Design", category: "BRACELETS", price: 99.99, rating: 4.0, reviews: 3, itemsLeft: 39 },
-    { id: "5", title: "Silver Mens Open Cuff Bangle Goldsmiths", category: "BRACELETS", price: 81.45, originalPrice: 120.99, rating: 3.33, reviews: 3, itemsLeft: 56, discountPercentage: 33 },
-    { id: "6", title: "Diamond Tennis Bracelet 14K", category: "BRACELETS", price: 899.99, originalPrice: 1199.99, rating: 5.0, reviews: 8, itemsLeft: 5, discountPercentage: 25 },
-  ],
-  earrings: [
-    { id: "1", title: "Sterling Silver Offspring Open Earhoops", category: "EARRINGS", price: 86.77, originalPrice: 123.55, rating: 4.5, reviews: 4, itemsLeft: 31, discountPercentage: 30 },
-    { id: "2", title: "Sterling Silver 4mm Ball Stud Earrings", category: "EARRINGS", price: 195.29, originalPrice: 266.88, rating: 4.2, reviews: 6, itemsLeft: 23, discountPercentage: 27 },
-    { id: "3", title: "Diamond Hoop Earrings 14K Gold", category: "EARRINGS", price: 299.99, originalPrice: 399.99, rating: 5.0, reviews: 8, itemsLeft: 12, discountPercentage: 25 },
-    { id: "4", title: "Pearl Drop Earrings Sterling Silver", category: "EARRINGS", price: 89.99, rating: 4.3, reviews: 5, itemsLeft: 45 },
-    { id: "5", title: "Crystal Chandelier Earrings", category: "EARRINGS", price: 156.50, originalPrice: 189.99, rating: 4.1, reviews: 3, itemsLeft: 28, discountPercentage: 18 },
-  ],
-  necklaces: [
-    { id: "1", title: "Sterling Silver Heart Locket Necklace", category: "NECKLACES", price: 43.99, originalPrice: 52.25, rating: 4.8, reviews: 5, itemsLeft: 28, discountPercentage: 16 },
-    { id: "2", title: "9ct White Gold Diamond Pearl Necklace", category: "NECKLACES", price: 200.19, originalPrice: 219.99, rating: 3.67, reviews: 8, itemsLeft: 23, discountPercentage: 10 },
-    { id: "3", title: "Gold Chain Layered Necklace Set", category: "NECKLACES", price: 129.99, originalPrice: 159.99, rating: 4.5, reviews: 12, itemsLeft: 34, discountPercentage: 19 },
-    { id: "4", title: "Diamond Pendant Necklace 18K", category: "NECKLACES", price: 450.00, rating: 4.9, reviews: 7, itemsLeft: 8 },
-  ],
-  rings: [
-    { id: "1", title: "Diamond Solitaire Engagement Ring", category: "RINGS", price: 1299.99, originalPrice: 1599.99, rating: 5.0, reviews: 12, itemsLeft: 8, discountPercentage: 19 },
-    { id: "2", title: "Sterling Silver Infinity Band Ring", category: "RINGS", price: 89.99, rating: 4.3, reviews: 7, itemsLeft: 62 },
-    { id: "3", title: "Platinum Wedding Band Classic", category: "RINGS", price: 599.99, originalPrice: 749.99, rating: 4.8, reviews: 15, itemsLeft: 18, discountPercentage: 20 },
-    { id: "4", title: "Rose Gold Stackable Ring Set", category: "RINGS", price: 145.00, originalPrice: 175.00, rating: 4.4, reviews: 9, itemsLeft: 41, discountPercentage: 17 },
-  ],
-  "gold-set": [
-    { id: "1", title: "9ct Yellow Gold Pendant Set", category: "GOLD SET", price: 350.00, originalPrice: 420.00, rating: 4.7, reviews: 6, itemsLeft: 12, discountPercentage: 17 },
-    { id: "2", title: "18K Gold Bridal Jewelry Set", category: "GOLD SET", price: 2499.99, rating: 5.0, reviews: 3, itemsLeft: 4 },
-  ],
-  "silver-set": [
-    { id: "1", title: "Sterling Silver Wedding Set", category: "SILVER SET", price: 299.99, originalPrice: 399.99, rating: 4.5, reviews: 8, itemsLeft: 15, discountPercentage: 25 },
-    { id: "2", title: "Silver Pearl Jewelry Set", category: "SILVER SET", price: 189.99, rating: 4.2, reviews: 5, itemsLeft: 22 },
-  ],
-};
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  image?: string | null;
+}
 
 export default function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  const category = CATEGORIES[slug] || { name: "Category", description: "", image: "" };
-  const products = PRODUCTS_BY_CATEGORY[slug] || [];
-  const totalPages = Math.ceil(products.length / 6);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [totalProducts, setTotalProducts] = useState(0);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const offset = (currentPage - 1) * itemsPerPage;
+        
+        // Fetch products with limit and offset
+        const productsRes = await fetch(`/api/products?category=${slug}&limit=${itemsPerPage}&offset=${offset}`);
+        const productsData = await productsRes.json();
+        
+        if (productsData.success) {
+          setProducts(productsData.data);
+          setTotalProducts(productsData.total || productsData.count);
+          
+          // Get category info from the first product if available
+          if (productsData.data.length > 0 && productsData.data[0].category) {
+            setCategory(productsData.data[0].category);
+          }
+        }
+        
+        // If we didn't get category from products, fetch categories to find this one
+        if (!category) {
+          const categoriesRes = await fetch("/api/categories");
+          const categoriesData = await categoriesRes.json();
+          if (categoriesData.success) {
+            const found = categoriesData.data.find((c: Category) => c.slug === slug);
+            if (found) setCategory(found);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchData();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [slug, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+  
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const categoryName = category?.name || slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ');
+  const categoryDescription = category?.description || `Explore our ${categoryName.toLowerCase()} collection.`;
+  const categoryImage = category?.image || `https://picsum.photos/seed/cat-${slug}/1920/400`;
 
   return (
     <div className="min-h-screen bg-white">
       {/* Category Banner */}
       <div className="relative h-[300px] overflow-hidden">
         <img
-          src={category.image}
-          alt={category.name}
+          src={categoryImage}
+          alt={categoryName}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{category.name}</h1>
-          <p className="text-lg max-w-2xl px-4">{category.description}</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-bold mb-4">{categoryName}</h1>
+          <p className="text-lg max-w-2xl px-4">{categoryDescription}</p>
         </div>
       </div>
 
@@ -108,48 +117,85 @@ export default function CategoryPage({ params }: { params: Promise<{ slug: strin
       <div className="container mx-auto px-4 py-6">
         <Breadcrumb items={[
           { label: "Shop", href: "/shop" },
-          { label: category.name },
+          { label: categoryName },
         ]} />
       </div>
 
       <div className="container mx-auto px-4 pb-16">
         <div className="flex gap-8">
           {/* Sidebar */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:block w-64 flex-shrink-0">
             <ProductFilters />
           </div>
 
           {/* Products */}
           <div className="flex-1">
+            {/* Header: Count & Limit Selector */}
             <div className="flex items-center justify-between mb-6">
               <p className="text-sm text-gray-500">
-                <span className="font-medium text-gray-900">{products.length}</span> products found
+                Found <span className="font-medium text-gray-900">{totalProducts}</span> products
               </p>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Show:</span>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(val) => {
+                    setItemsPerPage(Number(val));
+                    setCurrentPage(1); // Reset to page 1 on limit change
+                  }}
+                >
+                  <SelectTrigger className="w-[80px] h-8 text-xs">
+                    <SelectValue placeholder="20" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  title={product.title}
-                  category={product.category}
-                  price={product.price}
-                  originalPrice={product.originalPrice}
-                  rating={product.rating}
-                  reviews={product.reviews}
-                  itemsLeft={product.itemsLeft}
-                  discountPercentage={product.discountPercentage}
-                />
-              ))}
-            </div>
-
-            {totalPages > 1 && (
-              <div className="mt-12">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : products.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      id={product.id}
+                      slug={product.slug}
+                      title={product.title}
+                      category={product.category?.name ?? ""}
+                      price={product.price}
+                      originalPrice={product.originalPrice ?? undefined}
+                      rating={product.rating}
+                      reviews={product.reviewsCount}
+                      itemsLeft={product.itemsLeft}
+                      discountPercentage={product.discountPercentage ?? undefined}
+                      image={product.image}
+                    />
+                  ))}
+                </div>
+                
+                {/* Server-Side Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-12">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-20">
+                <p className="text-gray-500">No products found for this selection.</p>
               </div>
             )}
           </div>

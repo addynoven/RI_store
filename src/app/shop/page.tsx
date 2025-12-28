@@ -1,17 +1,48 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProductCard from "@/components/ProductCard";
 import Pagination from "@/components/Pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Grid3X3, LayoutList, SlidersHorizontal, X, Check } from "lucide-react";
+import { Grid3X3, LayoutList, SlidersHorizontal, X, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PRODUCTS, CATEGORIES, PRICE_RANGES, filterProducts } from "@/lib/products";
+
+// Price ranges for filter (static - can be made dynamic later)
+const PRICE_RANGES = [
+  { label: "Under ₹100", min: 0, max: 100 },
+  { label: "₹100 - ₹200", min: 100, max: 200 },
+  { label: "₹200 - ₹500", min: 200, max: 500 },
+  { label: "Over ₹500", min: 500, max: Infinity },
+];
 
 const ITEMS_PER_PAGE = 9;
 
+interface Product {
+  id: string;
+  slug: string;
+  title: string;
+  price: number;
+  originalPrice?: number | null;
+  discountPercentage?: number | null;
+  rating: number;
+  reviewsCount: number;
+  itemsLeft: number;
+  image: string;
+  category?: { name: string; slug: string } | null;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  _count?: { products: number };
+}
+
 export default function ShopPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState<"price-asc" | "price-desc" | "rating" | "newest">("newest");
   const [showFilters, setShowFilters] = useState(false);
@@ -20,15 +51,75 @@ export default function ShopPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<{ min: number; max: number } | null>(null);
 
-  // Apply filters instantly (no API call needed - client-side)
+  // Fetch products and categories on mount
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          fetch("/api/products"),
+          fetch("/api/categories"),
+        ]);
+        
+        const productsData = await productsRes.json();
+        const categoriesData = await categoriesRes.json();
+        
+        if (productsData.success) {
+          setProducts(productsData.data);
+        }
+        if (categoriesData.success) {
+          setCategories(categoriesData.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, []);
+
+  // Apply filters client-side for instant feedback
   const filteredProducts = useMemo(() => {
-    return filterProducts({
-      categories: selectedCategories.length > 0 ? selectedCategories : undefined,
-      minPrice: selectedPriceRange?.min,
-      maxPrice: selectedPriceRange?.max,
-      sortBy,
-    });
-  }, [selectedCategories, selectedPriceRange, sortBy]);
+    let result = [...products];
+
+    // Category filter
+    if (selectedCategories.length > 0) {
+      result = result.filter(p => 
+        p.category && selectedCategories.includes(p.category.slug)
+      );
+    }
+
+    // Price filter
+    if (selectedPriceRange) {
+      result = result.filter(p => {
+        if (selectedPriceRange.max === Infinity) {
+          return p.price >= selectedPriceRange.min;
+        }
+        return p.price >= selectedPriceRange.min && p.price <= selectedPriceRange.max;
+      });
+    }
+
+    // Sorting
+    switch (sortBy) {
+      case "price-asc":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "rating":
+        result.sort((a, b) => b.rating - a.rating);
+        break;
+      case "newest":
+      default:
+        // Keep original order (newest first from API)
+        break;
+    }
+
+    return result;
+  }, [products, selectedCategories, selectedPriceRange, sortBy]);
 
   // Pagination
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -77,7 +168,7 @@ export default function ShopPage() {
       <div>
         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Categories</h3>
         <div className="space-y-2">
-          {CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <button
               key={category.slug}
               onClick={() => handleCategoryToggle(category.slug)}
@@ -88,7 +179,9 @@ export default function ShopPage() {
               }`}
             >
               <span className="text-sm">{category.name}</span>
-              <span className="text-xs opacity-60">({category.count})</span>
+              <span className="text-xs opacity-60">
+                ({category._count?.products ?? products.filter(p => p.category?.slug === category.slug).length})
+              </span>
             </button>
           ))}
         </div>
@@ -122,6 +215,14 @@ export default function ShopPage() {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -210,7 +311,7 @@ export default function ShopPage() {
             {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedCategories.map(slug => {
-                  const cat = CATEGORIES.find(c => c.slug === slug);
+                  const cat = categories.find(c => c.slug === slug);
                   return (
                     <button
                       key={slug}
@@ -243,13 +344,13 @@ export default function ShopPage() {
                     id={product.id}
                     slug={product.slug}
                     title={product.title}
-                    category={product.category}
+                    category={product.category?.name ?? ""}
                     price={product.price}
-                    originalPrice={product.originalPrice}
+                    originalPrice={product.originalPrice ?? undefined}
                     rating={product.rating}
-                    reviews={product.reviews}
+                    reviews={product.reviewsCount}
                     itemsLeft={product.itemsLeft}
-                    discountPercentage={product.discountPercentage}
+                    discountPercentage={product.discountPercentage ?? undefined}
                     image={product.image}
                   />
                 ))}
@@ -279,4 +380,3 @@ export default function ShopPage() {
     </div>
   );
 }
-

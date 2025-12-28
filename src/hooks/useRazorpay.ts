@@ -5,8 +5,13 @@ import { siteConfig } from "@/lib/config";
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay: new (options: unknown) => RazorpayInstance;
   }
+}
+
+interface RazorpayInstance {
+  on: (event: string, callback: (response: unknown) => void) => void;
+  open: () => void;
 }
 
 interface CartItemForPayment {
@@ -25,7 +30,7 @@ interface RazorpayOptions {
     contact?: string;
   };
   onSuccess?: (response: RazorpayResponse, calculatedTotal: CalculatedTotal) => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
 }
 
 interface RazorpayResponse {
@@ -129,8 +134,9 @@ export function useRazorpay() {
       };
 
       const razorpay = new window.Razorpay(options);
-      razorpay.on("payment.failed", (response: any) => {
-        onError?.(response.error);
+      razorpay.on("payment.failed", (response: unknown) => {
+        const errorResponse = response as { error: unknown };
+        onError?.(errorResponse.error);
       });
       razorpay.open();
     } catch (error) {

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Variable",
+    "slug": "variable",
+    "description": "Beautiful variable collection"
+  },
+  {
+    "name": "Simple",
+    "slug": "simple",
+    "description": "Beautiful simple collection"
+  },
+  {
+    "name": "Body Jewelry",
+    "slug": "body-jewelry",
+    "description": "Beautiful body jewelry collection"
+  },
+  {
+    "name": "Jewelry",
+    "slug": "jewelry",
+    "description": "Beautiful jewelry collection"
+  }
+]

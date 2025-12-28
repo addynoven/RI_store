@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Necklaces",
+    "slug": "necklaces",
+    "url": "https://www.amazon.in/s?k=gold+plated+necklace+for+women&i=jewelry&rh=p_36%3A10000-100000"
+  },
+  {
+    "name": "Earrings",
+    "slug": "earrings",
+    "url": "https://www.amazon.in/s?k=gold+plated+earrings+for+women&i=jewelry&rh=p_36%3A10000-100000"
+  },
+  {
+    "name": "Bangles",
+    "slug": "bangles",
+    "url": "https://www.amazon.in/s?k=gold+plated+bangles+set&i=jewelry&rh=p_36%3A10000-100000"
+  },
+  {
+    "name": "Rings",
+    "slug": "rings",
+    "url": "https://www.amazon.in/s?k=gold+plated+rings+for+women&i=jewelry&rh=p_36%3A10000-100000"
+  },
+  {
+    "name": "Mangalsutra",
+    "slug": "mangalsutra",
+    "url": "https://www.amazon.in/s?k=mangalsutra+gold+plated&i=jewelry&rh=p_36%3A10000-100000"
+  },
+  {
+    "name": "Anklets",
+    "slug": "anklets",
+    "url": "https://www.amazon.in/s?k=anklets+for+women+silver&i=jewelry&rh=p_36%3A10000-100000"
+  }
+]
