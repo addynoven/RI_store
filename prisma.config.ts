@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { defineConfig } from 'prisma/config'
 
-// Load environment variables from .env
+// Load environment variables from .envw
 import 'dotenv/config'
 
 export default defineConfig({

@@ -5,24 +5,11 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import ProductCard from "@/components/ProductCard";
+import Pagination from "@/components/Pagination";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X, Loader2 } from "lucide-react";
-
-interface Product {
-  id: string;
-  slug: string;
-  title: string;
-  price: number;
-  originalPrice?: number | null;
-  discountPercentage?: number | null;
-  rating: number;
-  reviewsCount: number;
-  itemsLeft: number;
-  image: string;
-  tags: string[];
-  category?: { name: string; slug: string } | null;
-}
 
 function SearchContent() {
   const searchParams = useSearchParams();
@@ -30,62 +17,38 @@ function SearchContent() {
   const initialQuery = searchParams.get("q") || "";
   
   const [query, setQuery] = useState(initialQuery);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [results, setResults] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
 
-  // Fetch all products on mount
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const res = await fetch("/api/products");
-        const data = await res.json();
-        if (data.success) {
-          setAllProducts(data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch products:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
-  }, []);
-
-  // Search when query or products change
-  useEffect(() => {
-    if (query.trim()) {
-      const lowerQuery = query.toLowerCase();
-      const found = allProducts.filter(product => 
-        product.title.toLowerCase().includes(lowerQuery) ||
-        product.category?.name.toLowerCase().includes(lowerQuery) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(lowerQuery))
-      );
-      setResults(found);
-    } else {
-      setResults([]);
-    }
-  }, [query, allProducts]);
-
-  // Update URL when query changes (debounced)
+  // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query.trim()) {
-        router.replace(`/search?q=${encodeURIComponent(query)}`, { scroll: false });
-      } else {
-        router.replace("/search", { scroll: false });
-      }
+      setDebouncedQuery(query);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, router]);
+  }, [query]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  // Use the products hook with search filter
+  const {
+    products,
+    totalProducts,
+    totalPages,
+    currentPage,
+    setCurrentPage,
+    loading,
+  } = useProducts({
+    filters: debouncedQuery ? { search: debouncedQuery } : {},
+    enabled: !!debouncedQuery,
+    initialLimit: 20,
+  });
+
+  // Update URL when query changes
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      router.replace(`/search?q=${encodeURIComponent(debouncedQuery)}`, { scroll: false });
+    } else {
+      router.replace("/search", { scroll: false });
+    }
+  }, [debouncedQuery, router]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -140,37 +103,56 @@ function SearchContent() {
         </div>
 
         {/* Results */}
-        {query.trim() && (
+        {debouncedQuery.trim() && (
           <div>
             <div className="flex items-center justify-between mb-6">
               <p className="text-gray-600">
-                {results.length === 0 ? (
+                {loading ? (
+                  "Searching..."
+                ) : totalProducts === 0 ? (
                   "No products found"
                 ) : (
-                  <>Found <span className="font-bold">{results.length}</span> products for &quot;{query}&quot;</>
+                  <>Found <span className="font-bold">{totalProducts}</span> products for &quot;{debouncedQuery}&quot;</>
                 )}
               </p>
             </div>
 
-            {results.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {results.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    id={product.id}
-                    slug={product.slug}
-                    title={product.title}
-                    category={product.category?.name ?? ""}
-                    price={product.price}
-                    originalPrice={product.originalPrice ?? undefined}
-                    rating={product.rating}
-                    reviews={product.reviewsCount}
-                    itemsLeft={product.itemsLeft}
-                    discountPercentage={product.discountPercentage ?? undefined}
-                    image={product.image}
-                  />
-                ))}
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
               </div>
+            ) : products.length > 0 ? (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {products.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      id={product.id}
+                      slug={product.slug}
+                      title={product.title}
+                      category={product.category?.name ?? ""}
+                      price={product.price}
+                      originalPrice={product.originalPrice ?? undefined}
+                      rating={product.rating}
+                      reviews={product.reviewsCount}
+                      itemsLeft={product.itemsLeft}
+                      discountPercentage={product.discountPercentage ?? undefined}
+                      image={product.image}
+                    />
+                  ))}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-12">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-20">
                 <p className="text-gray-500 mb-4">No products match your search.</p>
@@ -183,28 +165,10 @@ function SearchContent() {
           </div>
         )}
 
-        {/* Show all products if no query */}
-        {!query.trim() && (
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">All Products</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {allProducts.slice(0, 8).map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  slug={product.slug}
-                  title={product.title}
-                  category={product.category?.name ?? ""}
-                  price={product.price}
-                  originalPrice={product.originalPrice ?? undefined}
-                  rating={product.rating}
-                  reviews={product.reviewsCount}
-                  itemsLeft={product.itemsLeft}
-                  discountPercentage={product.discountPercentage ?? undefined}
-                  image={product.image}
-                />
-              ))}
-            </div>
+        {/* Show prompt if no query */}
+        {!debouncedQuery.trim() && (
+          <div className="text-center py-10">
+            <p className="text-gray-400">Enter a search term to find products</p>
           </div>
         )}
       </div>

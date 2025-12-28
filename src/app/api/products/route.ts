@@ -5,29 +5,79 @@ import { Prisma } from "@prisma/client";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  
+  // Pagination
+  const limit = parseInt(searchParams.get("limit") || "20");
+  const offset = parseInt(searchParams.get("offset") || "0");
+  
+  // Filters
   const category = searchParams.get("category");
   const bestSellers = searchParams.get("bestSellers");
   const featured = searchParams.get("featured");
-  const limit = parseInt(searchParams.get("limit") || "20");
-  const offset = parseInt(searchParams.get("offset") || "0");
+  const minPrice = searchParams.get("minPrice");
+  const maxPrice = searchParams.get("maxPrice");
+  const search = searchParams.get("search");
+  
+  // Sorting
+  const sort = searchParams.get("sort"); // newest, price-asc, price-desc, rating
 
   try {
     const whereClause: Prisma.ProductWhereInput = {};
 
+    // Category filter
     if (category) {
       whereClause.category = {
         slug: category
       };
     }
     
+    // Best sellers filter
     if (bestSellers === "true") {
-       whereClause.rating = {
-         gte: 4.5
-       }
+      whereClause.rating = {
+        gte: 4.5
+      };
     }
 
+    // Featured filter
     if (featured === "true") {
       whereClause.isFeatured = true;
+    }
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      whereClause.price = {};
+      if (minPrice) {
+        whereClause.price.gte = parseFloat(minPrice);
+      }
+      if (maxPrice) {
+        whereClause.price.lte = parseFloat(maxPrice);
+      }
+    }
+
+    // Search filter (title, description, tags)
+    if (search) {
+      whereClause.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { tags: { has: search } },
+      ];
+    }
+
+    // Build orderBy based on sort param
+    let orderBy: Prisma.ProductOrderByWithRelationInput = { createdAt: 'desc' };
+    switch (sort) {
+      case "price-asc":
+        orderBy = { price: 'asc' };
+        break;
+      case "price-desc":
+        orderBy = { price: 'desc' };
+        break;
+      case "rating":
+        orderBy = { rating: 'desc' };
+        break;
+      case "newest":
+      default:
+        orderBy = { createdAt: 'desc' };
     }
 
     // Get total count for pagination info
@@ -38,9 +88,7 @@ export async function GET(request: Request) {
       include: {
         category: true,
       },
-      orderBy: {
-        createdAt: 'desc'
-      },
+      orderBy,
       take: Math.min(limit, 100), // Cap at 100 max
       skip: offset,
     });

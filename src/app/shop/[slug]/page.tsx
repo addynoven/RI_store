@@ -44,25 +44,13 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
     async function fetchProduct() {
       setLoading(true);
       try {
-        // Fetch all products and find by slug
-        const res = await fetch("/api/products");
+        // Fetch product by slug directly
+        const res = await fetch(`/api/products/${slug}`);
         const data = await res.json();
         
         if (data.success) {
-          const foundProduct = data.data.find((p: Product) => p.slug === slug);
-          
-          if (foundProduct) {
-            setProduct(foundProduct);
-            
-            // Get related products (same category, different product)
-            const related = data.data
-              .filter((p: Product) => 
-                p.category?.slug === foundProduct.category?.slug && 
-                p.id !== foundProduct.id
-              )
-              .slice(0, 4);
-            setRelatedProducts(related);
-          }
+          setProduct(data.data);
+          setRelatedProducts(data.relatedProducts || []);
         }
       } catch (error) {
         console.error("Failed to fetch product:", error);
